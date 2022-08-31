@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/foundation/key.dart';
 import 'package:flutter/src/widgets/framework.dart';
+import 'package:tictactoe/game_screen.dart';
 
 class GameBoard extends StatefulWidget {
   const GameBoard({Key? key}) : super(key: key);
@@ -35,6 +36,26 @@ class _GameBoardState extends State<GameBoard> {
     [2, 4, 6],
   ];
 
+  bool _enabled = true;
+
+  void createNewBoard() {
+    setState(() {
+      xToPlay = true;
+      _enabled = true;
+      currentBoard = [
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+      ];
+    });
+  }
+
   bool updateBoard(int index) {
     if (currentBoard[index] == '') {
       setState(() => currentBoard[index] = xToPlay ? 'X' : 'O');
@@ -44,7 +65,7 @@ class _GameBoardState extends State<GameBoard> {
     }
   }
 
-  bool checkWinner(int index, String player) {
+  String gameOver(int index, String player) {
     for (final comb in winning_combinations) {
       if (comb.contains(index)) {
         bool playerHasWon = true;
@@ -55,43 +76,93 @@ class _GameBoardState extends State<GameBoard> {
           }
         }
         if (playerHasWon) {
-          return true;
+          return player;
         }
       }
     }
-    return false;
+    if (currentBoard.contains('')) {
+      return '';
+    } else {
+      return 'Draw';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 3,
-      children: List.generate(
-        9,
-        (index) => GestureDetector(
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: Colors.black,
+    return Column(
+      children: [
+        Container(
+          padding: EdgeInsets.all(20.0),
+          child: GridView.count(
+            shrinkWrap: true,
+            crossAxisCount: 3,
+            children: List.generate(
+              9,
+              (index) => GestureDetector(
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Colors.black,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      currentBoard[index],
+                      style: TextStyle(
+                        fontSize: 50.0,
+                      ),
+                    ),
+                  ),
+                ),
+                onTap: () {
+                  if (_enabled) {
+                    if (updateBoard(index)) {
+                      String player = xToPlay ? 'X' : 'O';
+                      String gameOverType = gameOver(index, player);
+                      if (gameOverType != '') {
+                        _enabled = false;
+                        GameScreen.of(context).updateScore(gameOverType);
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text(
+                              gameOverType == 'Draw'
+                                  ? 'It was a draw!'
+                                  : '$player Won!',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: Text('OK'),
+                              ),
+                            ],
+                          ),
+                        );
+                      } else {
+                        xToPlay = !xToPlay;
+                      }
+                    }
+                  } else {
+                    null;
+                  }
+                },
               ),
             ),
-            child: Center(
-              child: Text(currentBoard[index]),
+          ),
+        ),
+        CupertinoButton(
+          color: Colors.blue,
+          borderRadius: BorderRadius.circular(80.0),
+          padding: EdgeInsets.symmetric(horizontal: 30.0, vertical: 15.0),
+          onPressed: () => createNewBoard(),
+          child: Text(
+            'Play Again',
+            style: TextStyle(
+              fontSize: 30.0,
             ),
           ),
-          onTap: () {
-            if (updateBoard(index)) {
-              String player = xToPlay ? 'X' : 'O';
-              if (checkWinner(index, player)) {
-                // print('$player Won!');
-              } else {
-                xToPlay = !xToPlay;
-                // print(currentBoard);
-              }
-            }
-          },
         ),
-      ),
+      ],
     );
   }
 }
